@@ -101,7 +101,7 @@ public class DetermineBasalAdapterJS {
             public void invoke(V8Object arg0, V8Array parameters) {
                 if (parameters.length() > 0) {
                     Object arg1 = parameters.get(0);
-                    log.debug("LOG " +	arg1);
+                    log.debug("JSLOG " +	arg1);
 
 
                 }
@@ -119,7 +119,7 @@ public class DetermineBasalAdapterJS {
         mV8rt.add(PARAM_currentTemp, mCurrentTemp);
     }
 
-    private void setCurrentTemp(double tempBasalDurationInMinutes, double tempBasalRateAbsolute) {
+    public void setCurrentTemp(double tempBasalDurationInMinutes, double tempBasalRateAbsolute) {
         mCurrentTemp.add("duration", tempBasalDurationInMinutes);
         mCurrentTemp.add("rate", tempBasalRateAbsolute);
     }
@@ -131,7 +131,7 @@ public class DetermineBasalAdapterJS {
         mV8rt.add(PARAM_iobData, mIobData);
     }
 
-    private void setIobData(double netIob, double netActivity, double bolusIob) {
+    public void setIobData(double netIob, double netActivity, double bolusIob) {
         mIobData.add("iob", netIob);
         mIobData.add("activity", netActivity);
         mIobData.add("bolusiob", bolusIob);
@@ -169,7 +169,7 @@ public class DetermineBasalAdapterJS {
         mV8rt.add(PARAM_profile, mProfile);
     }
 
-    private void setProfile_CurrentBasal(double currentBasal) {
+    public void setProfile_CurrentBasal(double currentBasal) {
         mProfile.add("current_basal", currentBasal);
     }
 
