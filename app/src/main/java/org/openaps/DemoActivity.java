@@ -1,16 +1,15 @@
 package org.openaps;
 
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 
 import android.widget.Button;
 import android.widget.TextView;
+import org.openaps.openAPS.DatermineBasalResult;
 import org.openaps.openAPS.DetermineBasalAdapterJS;
 import org.openaps.openAPS.ScriptReader;
 
@@ -29,13 +28,18 @@ public class DemoActivity extends AppCompatActivity {
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
-                DetermineBasalAdapterJS dbJS = new DetermineBasalAdapterJS(new ScriptReader(getApplicationContext()));
                 try {
-                    String text = dbJS.invoke();
-                    Snackbar.make(view, "Result " + text, Snackbar.LENGTH_LONG)
+                    DetermineBasalAdapterJS dbJS = new DetermineBasalAdapterJS(new ScriptReader(getApplicationContext()));
+
+                    DatermineBasalResult text = dbJS.invoke();
+                    Snackbar.make(view, "Result " + text.reason, Snackbar.LENGTH_LONG)
                                             .setAction("Action", null).show();
-                    result.setText(text);
+
+                    dbJS.setGlucoseStatus(120, 0, 0);
+
+                    text = dbJS.invoke();
+
+                    result.setText(text.reason);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

@@ -1,107 +1,176 @@
 package org.openaps.openAPS;
 
 
-import android.provider.MediaStore;
 import com.eclipsesource.v8.JavaVoidCallback;
 import com.eclipsesource.v8.V8;
 import com.eclipsesource.v8.V8Array;
 import com.eclipsesource.v8.V8Object;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Arrays;
 
 public class DetermineBasalAdapterJS {
+    private static Logger log = LoggerFactory.getLogger(DetermineBasalAdapterJS.class);
+
 
     private final ScriptReader mScriptReader;
     V8 mV8rt ;
+    private V8Object mProfile;
+    private V8Object mGlucoseStatus;
+    private V8Object mIobData;
+    private V8Object mCurrentTemp;
 
-    public DetermineBasalAdapterJS(ScriptReader scriptReader) {
+    private final String PARAM_currentTemp = "currentTemp";
+    private final String PARAM_iobData = "iobData";
+    private final String PARAM_glucoseStatus = "glucose_status";
+    private final String PARAM_profile = "profile";
+
+    public DetermineBasalAdapterJS(ScriptReader scriptReader) throws IOException {
         mV8rt = V8.createV8Runtime();
         mScriptReader  = scriptReader;
+
+        initProfile();
+        initGlucoseStatus();
+        initIobData();
+        initCurrentTemp();
+
+        initLogCallback();
+
+        initProcessExitCallback();
+
+        initModuleParent();
+
+        loadScript();
     }
 
-    public String invoke() throws IOException {
+    public DatermineBasalResult invoke() {
+
+        mV8rt.executeVoidScript(
+                "var rT = determinebasal.determine_basal(" +
+                        PARAM_glucoseStatus + ", " +
+                        PARAM_currentTemp+", " +
+                        PARAM_iobData +", " +
+                        PARAM_profile +
+                        ");");
+
+
+        String ret = "";
+        log.debug(mV8rt.executeStringScript("JSON.stringify(rT);"));
+
+        V8Object v8ObjectReuslt = mV8rt.getObject("rT");
+        {
+            V8Object result = v8ObjectReuslt;
+            log.debug(Arrays.toString(result.getKeys()));
+        }
+
+        DatermineBasalResult result = new DatermineBasalResult(v8ObjectReuslt);
+
+
+        return result;
+    }
+
+    private void loadScript() throws IOException {
+        mV8rt.executeVoidScript(readFile("oref0/bin/oref0-determine-basal.js"), "oref0/bin/oref0-determine-basal.js", 1);
+        mV8rt.executeVoidScript("var determinebasal = init();");
+    }
+
+    private void initModuleParent() {
         mV8rt.executeVoidScript("var module = {\"parent\":Boolean(1)};");
+    }
 
-        JavaVoidCallback callbackLog = new JavaVoidCallback() {
-            @Override
-            public void invoke(V8Object arg0, V8Array parameters) {
-                if (parameters.length() > 0) {
-                    Object arg1 = parameters.get(0);
-//					System.out.println("LOG " +	arg1);
-
-
-                }
-            }
-        };
-
+    private void initProcessExitCallback() {
         JavaVoidCallback callbackProccessExit = new JavaVoidCallback() {
             @Override
             public void invoke(V8Object arg0, V8Array parameters) {
                 if (parameters.length() > 0) {
                     Object arg1 = parameters.get(0);
-                    System.out.println("ProccessExit " +arg1);
+                    log.error("ProccessExit " +arg1);
 //					mV8rt.executeVoidScript("return \"\";");
                 }
             }
         };
         mV8rt.registerJavaMethod(callbackProccessExit, "proccessExit");
         mV8rt.executeVoidScript("var process = {\"exit\": function () { proccessExit(); } };");
+    }
 
+    private void initLogCallback() {
+        JavaVoidCallback callbackLog = new JavaVoidCallback() {
+            @Override
+            public void invoke(V8Object arg0, V8Array parameters) {
+                if (parameters.length() > 0) {
+                    Object arg1 = parameters.get(0);
+                    log.debug("LOG " +	arg1);
+
+
+                }
+            }
+        };
         mV8rt.registerJavaMethod(callbackLog, "log");
         mV8rt.executeVoidScript("var console = {\"log\":log, \"error\":log};");
+    }
 
-        mV8rt.executeVoidScript(readFile("oref0/bin/oref0-determine-basal.js"), "oref0/bin/oref0-determine-basal.js", 1);
+    private void initCurrentTemp() {
+        mCurrentTemp = new V8Object(mV8rt);
+        setCurrentTemp(30.0, 0.1);
+        mCurrentTemp.add("temp", "absolute");
 
-        mV8rt.executeVoidScript("var determinebasal = init();");
+        mV8rt.add(PARAM_currentTemp, mCurrentTemp);
+    }
 
-        V8Object profile = new V8Object(mV8rt);
-        profile.add("max_iob", 2.0);
-        profile.add("carbs_hr", 28.0);
-        profile.add("dia", 4.0);
-        profile.add("type", "current");
-        profile.add("current_basal", 1.6);
-        profile.add("max_daily_basal", 1.1);
-        profile.add("max_basal", 2);
-        profile.add("max_bg", 125);
-        profile.add("min_bg", 106);
-        profile.add("carbratio", 10);
-        profile.add("sens", 10);
-        mV8rt.add("profile", profile);
+    private void setCurrentTemp(double tempBasalDurationInMinutes, double tempBasalRateAbsolute) {
+        mCurrentTemp.add("duration", tempBasalDurationInMinutes);
+        mCurrentTemp.add("rate", tempBasalRateAbsolute);
+    }
 
+    private void initIobData() {
+        mIobData = new V8Object(mV8rt);
+        setIobData(0.0, 0.0, 0.0);
 
-        V8Object glucose_status = new V8Object(mV8rt);
-        glucose_status.add("delta", 10.0);
-        glucose_status.add("glucose", 100.0);
-        glucose_status.add("avgdelta", 10.0);
-        mV8rt.add("glucose_status", glucose_status);
+        mV8rt.add(PARAM_iobData, mIobData);
+    }
 
+    private void setIobData(double netIob, double netActivity, double bolusIob) {
+        mIobData.add("iob", netIob);
+        mIobData.add("activity", netActivity);
+        mIobData.add("bolusiob", bolusIob);
+    }
 
-        V8Object iob_data = new V8Object(mV8rt);
-        iob_data.add("iob", 0.0);
-        iob_data.add("activity", 0.0);
-        iob_data.add("bolusiob", 0.0);
-        mV8rt.add("iob_data", iob_data);
+    private void initGlucoseStatus() {
+        mGlucoseStatus = new V8Object(mV8rt);
 
-        V8Object currenttemp = new V8Object(mV8rt);
-        currenttemp.add("duration", 30.0);
-        currenttemp.add("rate", 0.1);
-        currenttemp.add("temp", "absolute");
-        mV8rt.add("currenttemp", currenttemp);
+        setGlucoseStatus(100.0, 10.0, 10.0);
 
+        mV8rt.add(PARAM_glucoseStatus, mGlucoseStatus);
+    }
 
-        V8Array determine_basal_parameters = new V8Array(mV8rt);
-        determine_basal_parameters.add("glucose_status", glucose_status);
-        determine_basal_parameters.add("currenttemp", currenttemp);
-        determine_basal_parameters.add("iob_data", iob_data);
-        determine_basal_parameters.add("profile", profile);
+    public void setGlucoseStatus(double glocoseValue, double glucoseDelta, double glucoseAvgDelta15m) {
+        mGlucoseStatus.add("delta", glucoseDelta);
+        mGlucoseStatus.add("glucose", glocoseValue);
+        mGlucoseStatus.add("avgdelta", glucoseAvgDelta15m);
 
-        mV8rt.executeVoidScript("var rT = determinebasal.determine_basal(glucose_status, currenttemp, iob_data, profile);");
-        String ret =
-                mV8rt.executeStringScript("JSON.stringify(rT);");
+    }
 
-        return ret;
+    private void initProfile() {
+        mProfile = new V8Object(mV8rt);
+
+        mProfile.add("max_iob", 2.0);
+        mProfile.add("carbs_hr", 28.0);
+        mProfile.add("dia", 4.0);
+        mProfile.add("type", "current");
+        setProfile_CurrentBasal(1.6);
+        mProfile.add("max_daily_basal", 1.1);
+        mProfile.add("max_basal", 2);
+        mProfile.add("max_bg", 125);
+        mProfile.add("min_bg", 106);
+        mProfile.add("carbratio", 10);
+        mProfile.add("sens", 10);
+        mV8rt.add(PARAM_profile, mProfile);
+    }
+
+    private void setProfile_CurrentBasal(double currentBasal) {
+        mProfile.add("current_basal", currentBasal);
     }
 
     @Override
