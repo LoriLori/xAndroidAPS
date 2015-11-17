@@ -13,9 +13,13 @@ public class DatermineBasalResult {
 
     public DatermineBasalResult(V8Object result) {
         reason = result.getString("reason");
-        tempBasalRate = result.getDouble("rate");
         eventualBG = result.getDouble("eventualBG");
         snoozeBG = result.getDouble("snoozeBG");
+        if(result.contains("rate")) {
+            tempBasalRate = result.getDouble("rate");
+        } else {
+            tempBasalRate = -1;
+        }
         result.release();
     }
 }
