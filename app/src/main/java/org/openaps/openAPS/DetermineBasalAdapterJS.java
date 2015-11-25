@@ -72,8 +72,12 @@ public class DetermineBasalAdapterJS {
     }
 
     private void loadScript() throws IOException {
-        mV8rt.executeVoidScript(readFile("oref0/bin/oref0-determine-basal.js"), "oref0/bin/oref0-determine-basal.js", 1);
-        mV8rt.executeVoidScript("var determinebasal = init();");
+        mV8rt.executeVoidScript(
+                "(function() {\n"+
+                    readFile("oref0/bin/oref0-determine-basal.js") +
+                "\n})()" ,
+                "oref0/bin/oref0-determine-basal.js", 2);
+        mV8rt.executeVoidScript("var determinebasal = module.exports();");
     }
 
     private void initModuleParent() {
