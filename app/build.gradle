@@ -24,7 +24,7 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:22.2.1'
     compile 'com.android.support:design:22.2.1'
-    compile 'com.eclipsesource.j2v8:j2v8:3.1.0-SNAPSHOT@aar'
+    compile 'com.eclipsesource.j2v8:j2v8:3.1.6@aar'
     compile 'com.github.tony19:logback-android-classic:1.1.1-4'
     compile 'org.slf4j:slf4j-api:1.7.12'
 }

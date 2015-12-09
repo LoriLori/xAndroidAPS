@@ -105,7 +105,7 @@ public class DetermineBasalAdapterJS {
             public void invoke(V8Object arg0, V8Array parameters) {
                 if (parameters.length() > 0) {
                     Object arg1 = parameters.get(0);
-                    log.debug("JSLOG " +	arg1);
+                    //log.debug("JSLOG " +	arg1);
 
 
                 }
@@ -144,7 +144,7 @@ public class DetermineBasalAdapterJS {
     private void initGlucoseStatus() {
         mGlucoseStatus = new V8Object(mV8rt);
 
-        setGlucoseStatus(100.0, 10.0, 10.0);
+        setGlucoseStatus(0.0, 0.0, 0.0);
 
         mV8rt.add(PARAM_glucoseStatus, mGlucoseStatus);
     }
@@ -165,12 +165,16 @@ public class DetermineBasalAdapterJS {
         mProfile.add("type", "current");
         setProfile_CurrentBasal(1.6);
         mProfile.add("max_daily_basal", 1.1);
-        mProfile.add("max_basal", 2);
+        setProfile_MaxBasal(2.0);
         mProfile.add("max_bg", 125);
         mProfile.add("min_bg", 106);
         mProfile.add("carbratio", 10);
-        mProfile.add("sens", 10);
+        setProfile_Sens(27);
         mV8rt.add(PARAM_profile, mProfile);
+    }
+
+    public void setProfile_Sens(int sensitivityInMGDL) {
+        mProfile.add("sens", sensitivityInMGDL);
     }
 
     public void setProfile_CurrentBasal(double currentBasal) {
@@ -181,11 +185,12 @@ public class DetermineBasalAdapterJS {
     protected void finalize() throws Throwable {
         super.finalize();
         try {
-            mV8rt.release();
+
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
 
     public String readFile(String filename) throws IOException {
         byte[] bytes = mScriptReader.readFile(filename);
@@ -196,4 +201,15 @@ public class DetermineBasalAdapterJS {
         return string;
     }
 
+    public void setProfile_MaxBasal(double max_basal) {
+        mProfile.add("max_basal", max_basal);
+    }
+
+    public void release() {
+        mProfile.release();
+        mCurrentTemp.release();
+        mIobData.release();
+        mGlucoseStatus.release();
+        mV8rt.release();
+    }
 }

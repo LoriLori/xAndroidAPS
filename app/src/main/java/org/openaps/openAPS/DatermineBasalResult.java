@@ -10,6 +10,7 @@ public class DatermineBasalResult {
     public final double tempBasalRate;
     public final double eventualBG;
     public final double snoozeBG;
+    public final int duration;
 
     public DatermineBasalResult(V8Object result) {
         reason = result.getString("reason");
@@ -20,6 +21,12 @@ public class DatermineBasalResult {
         } else {
             tempBasalRate = -1;
         }
+        if(result.contains("duration")) {
+            duration = result.getInteger("duration");
+        } else {
+            duration = -1;
+        }
+
         result.release();
     }
 }
