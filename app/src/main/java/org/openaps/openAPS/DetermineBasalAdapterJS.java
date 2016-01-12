@@ -48,11 +48,19 @@ public class DetermineBasalAdapterJS {
     public DatermineBasalResult invoke() {
 
         mV8rt.executeVoidScript(
-                "var rT = determinebasal.determine_basal(" +
+                "console.error(\"determine_basal(\"+\n" +
+                        "JSON.stringify("+PARAM_glucoseStatus+")+ \", \" +\n" +
+                        "JSON.stringify("+PARAM_currentTemp+")+ \", \" + \n" +
+                        "JSON.stringify("+PARAM_iobData+")+ \", \" +\n" +
+                        "JSON.stringify("+PARAM_profile+")+ \") \");");
+        mV8rt.executeVoidScript(
+                "var rT = determine_basal(" +
                         PARAM_glucoseStatus + ", " +
                         PARAM_currentTemp+", " +
                         PARAM_iobData +", " +
-                        PARAM_profile +
+                        PARAM_profile + ", " +
+                        "undefined, "+
+                        "setTempBasal"+
                         ");");
 
 
@@ -60,10 +68,10 @@ public class DetermineBasalAdapterJS {
         log.debug(mV8rt.executeStringScript("JSON.stringify(rT);"));
 
         V8Object v8ObjectReuslt = mV8rt.getObject("rT");
-        {
-            V8Object result = v8ObjectReuslt;
-            log.debug(Arrays.toString(result.getKeys()));
-        }
+//        {
+//            V8Object result = v8ObjectReuslt;
+//            log.debug(Arrays.toString(result.getKeys()));
+//        }
 
         DatermineBasalResult result = new DatermineBasalResult(v8ObjectReuslt);
 
@@ -73,11 +81,20 @@ public class DetermineBasalAdapterJS {
 
     private void loadScript() throws IOException {
         mV8rt.executeVoidScript(
-                "(function() {\n"+
-                    readFile("oref0/bin/oref0-determine-basal.js") +
-                "\n})()" ,
-                "oref0/bin/oref0-determine-basal.js", 2);
-        mV8rt.executeVoidScript("var determinebasal = module.exports();");
+                readFile("oref0/lib/determine-basal/determine-basal.js"),
+                "oref0/bin/oref0-determine-basal.js", 
+                0);
+        mV8rt.executeVoidScript("var determine_basal = module.exports;");
+        
+        mV8rt.executeVoidScript(
+        		"var setTempBasal = function (rate, duration, profile, rT, offline) {" +
+                    "rT.duration = duration;\n" +
+                "    rT.rate = rate;" +
+                    "return rT;" +
+                "};",
+        		"setTempBasal.js",
+        		0
+        		);
     }
 
     private void initModuleParent() {
@@ -105,7 +122,7 @@ public class DetermineBasalAdapterJS {
             public void invoke(V8Object arg0, V8Array parameters) {
                 if (parameters.length() > 0) {
                     Object arg1 = parameters.get(0);
-                    //log.debug("JSLOG " +	arg1);
+                    log.debug("JSLOG " +	arg1);
 
 
                 }
@@ -206,10 +223,14 @@ public class DetermineBasalAdapterJS {
     }
 
     public void release() {
-        mProfile.release();
-        mCurrentTemp.release();
-        mIobData.release();
-        mGlucoseStatus.release();
-        mV8rt.release();
+        try {
+            mProfile.release();
+            mCurrentTemp.release();
+            mIobData.release();
+            mGlucoseStatus.release();
+            mV8rt.release();
+        } catch (Exception e) {
+            log.error("release()",e);
+        }
     }
 }

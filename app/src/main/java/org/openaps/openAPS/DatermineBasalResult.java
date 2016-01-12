@@ -6,13 +6,18 @@ import com.eclipsesource.v8.V8Object;
 
 public class DatermineBasalResult {
 
-    public final String reason;
-    public final double tempBasalRate;
-    public final double eventualBG;
-    public final double snoozeBG;
-    public final int duration;
+    public String reason;
+    public double tempBasalRate;
+    public double eventualBG;
+    public double snoozeBG;
+    public int duration;
+    public String error;
 
     public DatermineBasalResult(V8Object result) {
+        if(result.contains("error")) {
+            error = result.getString("error");
+            return;
+        }
         reason = result.getString("reason");
         eventualBG = result.getDouble("eventualBG");
         snoozeBG = result.getDouble("snoozeBG");

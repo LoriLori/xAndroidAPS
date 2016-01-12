@@ -31,16 +31,12 @@ public class DemoActivity extends AppCompatActivity {
             public void onClick(View view) {
                 try {
                     DetermineBasalAdapterJS dbJS = new DetermineBasalAdapterJS(new ScriptReader(getApplicationContext()));
+                    dbJS.setGlucoseStatus(120, 0, 0);
 
                     DatermineBasalResult text = dbJS.invoke();
-                    Snackbar.make(view, "Result " + text.reason, Snackbar.LENGTH_LONG)
+                    Snackbar.make(view, "Result   " + text.reason, Snackbar.LENGTH_LONG)
                                             .setAction("Action", null).show();
 
-                    dbJS.setGlucoseStatus(120, 0, 0);
-
-                    text = dbJS.invoke();
-
-
                     result.setText(text.reason);
                     dbJS.release();
                 } catch (IOException e) {
@@ -51,31 +47,6 @@ public class DemoActivity extends AppCompatActivity {
             }
         });
 
-        final Button button2 = (Button) findViewById(R.id.button2);
-        button2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                try {
-                    DetermineBasalAdapterJS dbJS = new DetermineBasalAdapterJS(new ScriptReader(getApplicationContext()));
-
-                    DatermineBasalResult text = dbJS.invoke();
-                    Snackbar.make(view, "Result " + text.reason, Snackbar.LENGTH_LONG)
-                            .setAction("Action", null).show();
-
-                    dbJS.setGlucoseStatus(120, 0, 0);
-
-                    text = dbJS.invoke();
-
-                    dbJS.release();
-
-                    result.setText(text.reason);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-
-            }
-        });
     }
 
     @Override
