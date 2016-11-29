@@ -31,7 +31,7 @@ public class DemoActivity extends AppCompatActivity {
             public void onClick(View view) {
                 try {
                     DetermineBasalAdapterJS dbJS = new DetermineBasalAdapterJS(new ScriptReader(getApplicationContext()));
-                    dbJS.setGlucoseStatus(120, 0, 0);
+                    dbJS.setGlucoseStatus(120, 10, 10);
 
                     DatermineBasalResult text = dbJS.invoke();
                     Snackbar.make(view, "Result   " + text.reason, Snackbar.LENGTH_LONG)

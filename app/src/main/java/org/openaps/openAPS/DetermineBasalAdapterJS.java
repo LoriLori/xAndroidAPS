@@ -1,10 +1,7 @@
 package org.openaps.openAPS;
 
 
-import com.eclipsesource.v8.JavaVoidCallback;
-import com.eclipsesource.v8.V8;
-import com.eclipsesource.v8.V8Array;
-import com.eclipsesource.v8.V8Object;
+import com.eclipsesource.v8.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,11 +18,14 @@ public class DetermineBasalAdapterJS {
     private V8Object mGlucoseStatus;
     private V8Object mIobData;
     private V8Object mCurrentTemp;
+    private V8Object mCobData;
 
     private final String PARAM_currentTemp = "currentTemp";
     private final String PARAM_iobData = "iobData";
     private final String PARAM_glucoseStatus = "glucose_status";
     private final String PARAM_profile = "profile";
+    private final String PARAM_meal_data = "meal_data";
+    private final String PARAM_autosens_data = "autosens_data";
 
     public DetermineBasalAdapterJS(ScriptReader scriptReader) throws IOException {
         mV8rt = V8.createV8Runtime();
@@ -42,6 +42,23 @@ public class DetermineBasalAdapterJS {
 
         initModuleParent();
 
+        mV8rt.executeVoidScript(readFile("oref0/lib/round-basal.js"), "oref0/lib/determine-basal/round-basal.js",0);
+		mV8rt.executeVoidScript("var round_basal = module.exports;");
+        
+        mV8rt.executeVoidScript("require = function() {return round_basal;};");
+        
+        mV8rt.executeVoidScript(readFile("oref0/lib/basal-set-temp.js"), "oref0/lib/determine-basal/basal-set-temp.js ",0);
+        mV8rt.executeVoidScript("var tempBasalFunctions = module.exports;");
+        
+        mCobData = new V8Object(mV8rt);
+        mCobData.add("mealCOB", 0.0);
+		mV8rt.add("meal_data", mCobData);
+
+        //V8Object autosens_data = new V8Object(mV8rt);
+        //runtime.add("autosens_data", autosens_data);
+        mV8rt.executeVoidScript("autosens_data = undefined");
+
+
         loadScript();
     }
 
@@ -53,15 +70,22 @@ public class DetermineBasalAdapterJS {
                         "JSON.stringify("+PARAM_currentTemp+")+ \", \" + \n" +
                         "JSON.stringify("+PARAM_iobData+")+ \", \" +\n" +
                         "JSON.stringify("+PARAM_profile+")+ \") \");");
-        mV8rt.executeVoidScript(
-                "var rT = determine_basal(" +
-                        PARAM_glucoseStatus + ", " +
-                        PARAM_currentTemp+", " +
-                        PARAM_iobData +", " +
-                        PARAM_profile + ", " +
-                        "undefined, "+
-                        "setTempBasal"+
-                        ");");
+        //determine_basal(glucose_status, currenttemp, iob_data, profile, autosens_data, meal_data, tempBasalFunctions)
+
+        try {
+            mV8rt.executeVoidScript(
+                    "var rT = determine_basal(" +
+                            PARAM_glucoseStatus + ", " +
+                            PARAM_currentTemp+", " +
+                            PARAM_iobData +", " +
+                            PARAM_profile + ", " +
+                            PARAM_autosens_data+ ", "+
+                            PARAM_meal_data+", "+
+                            "tempBasalFunctions"+
+                            ");");
+        } catch (V8ScriptExecutionException e) {
+            log.error(e.getMessage(),e);
+        }
 
 
         String ret = "";
@@ -82,7 +106,7 @@ public class DetermineBasalAdapterJS {
     private void loadScript() throws IOException {
         mV8rt.executeVoidScript(
                 readFile("oref0/lib/determine-basal/determine-basal.js"),
-                "oref0/bin/oref0-determine-basal.js", 
+                "oref0/lib/determine-basal/determine-basal.js",
                 0);
         mV8rt.executeVoidScript("var determine_basal = module.exports;");
         
@@ -156,6 +180,7 @@ public class DetermineBasalAdapterJS {
         mIobData.add("iob", netIob);
         mIobData.add("activity", netActivity);
         mIobData.add("bolusiob", bolusIob);
+        mIobData.add("bolussnooze", 0.0);
     }
 
     private void initGlucoseStatus() {
@@ -170,6 +195,8 @@ public class DetermineBasalAdapterJS {
         mGlucoseStatus.add("delta", glucoseDelta);
         mGlucoseStatus.add("glucose", glocoseValue);
         mGlucoseStatus.add("avgdelta", glucoseAvgDelta15m);
+		mGlucoseStatus.add("short_avgdelta", 10.0);
+		mGlucoseStatus.add("long_avgdelta", 10.0);
 
     }
 
@@ -228,6 +255,7 @@ public class DetermineBasalAdapterJS {
             mCurrentTemp.release();
             mIobData.release();
             mGlucoseStatus.release();
+            mCobData.release();
             mV8rt.release();
         } catch (Exception e) {
             log.error("release()",e);
